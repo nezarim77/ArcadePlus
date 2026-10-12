@@ -244,9 +244,9 @@
             border-radius: 6px;
             user-select: none;
         }
-        .wordle-tile.correct { background-color: #a6e3a1; color: #11111b; border-color: #a6e3a1; } /* Hijau */
-        .wordle-tile.present { background-color: #f9e2af; color: #11111b; border-color: #f9e2af; } /* Kuning */
-        .wordle-tile.absent { background-color: #45475a; color: #a6adc8; border-color: #45475a; }   /* Abu-abu */
+        .wordle-tile.correct { background-color: #a6e3a1; color: #11111b; border-color: #a6e3a1; }
+        .wordle-tile.present { background-color: #f9e2af; color: #11111b; border-color: #f9e2af; }
+        .wordle-tile.absent { background-color: #45475a; color: #a6adc8; border-color: #45475a; }
 
         .wordle-keyboard {
             display: flex;
@@ -292,10 +292,10 @@
         <h1>🎮 Mini Web Arcade</h1>
         <p>Pilih game yang ingin Anda mainkan:</p>
         <div class="menu-grid">
-            <div class="game-card" onclick="switchScreen('ttt-screen')">❌ Tic-Tac-Toe (vs AI / PvP)</div>
-            <div class="game-card" onclick="switchScreen('snakes-screen')">🐍 Ular Tangga Mini (Animasi Pion)</div>
-            <div class="game-card" onclick="switchScreen('fc-screen')">🃏 Flip Card Memory Match</div>
-            <div class="game-card" onclick="switchScreen('wordle-screen')">🔤 Wordle (Tebak Kata)</div>
+            <div class="game-card" onclick="switchScreen('ttt-screen')">❌ Tic-Tac-Toe</div>
+            <div class="game-card" onclick="switchScreen('snakes-screen')">🐍 Ular Tangga</div>
+            <div class="game-card" onclick="switchScreen('fc-screen')">🃏 Flip Card</div>
+            <div class="game-card" onclick="switchScreen('wordle-screen')">🔤 Wordle</div>
         </div>
     </div>
 
@@ -698,24 +698,67 @@
         function resetBoard() { [firstCard, secondCard, lockBoard] = [null, null, false]; }
 
 
-        // ================= LOGIKA WORDLE =================
-        const wordList = [
+        // ================= LOGIKA WORDLE (VALIDASI KBBI) =================
+        // Kata target yang bisa dipilih secara acak
+        const targetWords = [
             "PASAR", "MAKAN", "SURAT", "POHON", "PINTU", "LAMPU", "RUMAH", "KAPAL", "KERAS", "MANIS",
-            "PUTIH", "MERAH", "HITAM", "GELAP", "BEBAS", "DUDUK", "JALAN", "MIMPI", "CERIA", "TANAH"
+            "PUTIH", "MERAH", "HITAM", "GELAP", "BEBAS", "DUDUK", "JALAN", "MIMPI", "CERIA", "TANAH",
+            "BERAS", "HUJAN", "SABUN", "PANTAI", "BUKU", "MEJA", "KURSI", "GURU", "MURID", "KELAS",
+            "AWAN", "ANGIN", "BULAN", "BINTANG", "LANGIT", "LAUT", "SUNGAI", "GUNUNG", "BUKIT", "PASIR",
+            "BATU", "KAYU", "DAUN", "BUNGA", "RUMPUT", "HEWAN", "BURUNG", "IKAN", "KUCING", "ANJING",
+            "KUDA", "SAPI", "KAMBING", "AYAM", "BEBEK", "TELUR", "SUSU", "KEJU", "ROTI", "NASI",
+            "SOTO", "GORENG", "SUP", "AIR", "TEH", "KOPI", "GULA", "GARAM", "CABAI", "PISANG",
+            "APEL", "JERUK", "MANGGA", "ANGGUR", "MELON", "JAMBU", "LALAT", "NYAMUK", "SEMUT", "LEBAH",
+            "ULAR", "BUAYA", "HARIMAU", "SINGA", "GAJAH", "RUSA", "ZEBRA", "JERAPAH", "KATAK", "IKAN",
+            "OBOR", "LILIN", "JENDELA", "KUNCI", "GEDUNG", "ISTANA", "JALAN", "KERETA", "MOTOR", "SEPEDA"
         ];
+
+        // Kamus kata valid (KBBI mini 5 huruf yang diizinkan untuk di-submit)
+        const validWords = new Set([
+            ...targetWords,
+            "ABADI", "ACARA", "ADAPT", "AKTIF", "ALAMI", "AMBIL", "AMPUH", "ANEKA", "ANGKA", "BADAI",
+            "BADAN", "BAHAYA", "BAIK", "BAJU", "BALIK", "BANGKAI", "BATAS", "BAYAR", "BEDAK", "BEKAL",
+            "BELI", "BENAR", "BENIH", "BERSIH", "BESAR", "BETUL", "BIASA", "BIJAK", "BILIK", "BINCANG",
+            "BISIK", "BODOH", "BOSAN", "BUAH", "BUDI", "BULAT", "BURUK", "CACAT", "CAHAYA", "CAIR",
+            "CAMAT", "CANTIK", "CARIK", "CATAT", "CEPAT", "CERDIK", "CINTA", "CIPTA", "CITA", "COBA",
+            "COCOK", "CURAH", "CURIGA", "DAEAH", "DAMAI", "DANAU", "DARAH", "DARAT", "DASAR", "DATAR",
+            "DEKAT", "DENDA", "DENGAR", "DERITA", "DESA", "DEWA", "DIAM", "DINGIN", "DOSA", "DUA",
+            "DUNIA", "DUST", "FAHAM", "FAKTA", "FALAH", "FASIH", "FATWA", "GAGAL", "GAJI", "GAMBAR",
+            "GANTI", "GARIS", "GATAL", "GAWAT", "GELI", "GEMA", "GENAP", "GESER", "GIGIT", "GIRANG",
+            "GOLOK", "GORES", "GUBRIS", "GUGUR", "GUNA", "GURAU", "HABIS", "HADAP", "HADIAH", "HAJAT",
+            "HAKIM", "HALAL", "HALUS", "HAMPIR", "HANCUR", "HANGAT", "HANYUT", "HARAP", "HARGA", "HASIL",
+            "HAUS", "HEMAT", "HENTI", "HERAN", "HIDUP", "HILANG", "HINDA", "HIRUP", "HITUNG", "HUJAT",
+            "HUKUM", "HULU", "HUTAN", "IBADAH", "IBU", "IJIN", "IKAT", "IKLAS", "IKUT", "ILAHI",
+            "ILMU", "IMAN", "INDAH", "INGAT", "INGIN", "INJAK", "INSAF", "INTIP", "IRING", "ISENG",
+            "ISIAN", "ISTRI", "IZIN", "JADWAL", "JAGAT", "JAGO", "JAHAT", "JAHIT", "JAKSA", "JALUR",
+            "JAMAN", "JAMBU", "JAMIN", "JANGKAU", "JARAK", "JARANG", "JARI", "JATUH", "JAWAB", "JEJAK",
+            "JELAS", "JELING", "JEMU", "JINAK", "JIRAN", "JITU", "JODOH", "JOKI", "JOSH", "JUADAH",
+            "JUANG", "JUBAH", "JUDUL", "JUJUR", "JULANG", "JULUR", "JUMPA", "JUNJUNG", "JURANG", "JURUS",
+            "JUST", "KABAR", "KABUR", "KACAU", "KADER", "KAIT", "KAKAK", "KAKI", "KALAH", "KALAU",
+            "KAMAR", "KAMIS", "KAMPO", "KANAN", "KANCIL", "KANDUNG", "KANGEN", "KAPAK", "KAPOK", "KARANG",
+            "KARYA", "KASAR", "KASIH", "KASTA", "KASUT", "KATUP", "KAUM", "KAWAN", "KECIL", "KECOH",
+            "KEDAI", "KEJAR", "KEJUT", "KELAK", "KELEBAT", "KELIR", "KELU", "KEMAH", "KEMAS", "KEMUDI",
+            "KENAL", "KENYANG", "KEPAL", "KEPALA", "KEPST", "KERAT", "KERJA", "KESAL", "KETAT", "KETIK",
+            "KILAP", "KILAT", "KIMIA", "KIPAS", "KIRIM", "KISAH", "KISAR", "KITA", "KODE", "KOLAM",
+            "KOMPAS", "KONCI", "KONTAN", "KOPEL", "KOREA", "KOTA", "KOTAK", "KREDIT", "KRITIK", "KUAS",
+            "KUAT", "KUBUR", "KUCIL", "KULIAH", "KULIT", "KUNCI", "KUNING", "KUPING", "KURANG", "KURAS",
+            "KURSI", "KURUN", "KUSUT", "KUTIP", "KUTUB", "LABA", "LABUH", "LACAK", "LADANG", "LAGU",
+            "LAHIR", "LAIN", "LAKNAT", "LAKON", "LAKU", "LALAI", "LALU", "LAMAR", "LAMBAT", "LAMPAI",
+            "LAMPU", "LANCAH", "LANDAS", "LANGIT", "LANJUT", "LANSIA", "LANTAI", "LUNTUR", "LUTUT"
+        ]);
+        
         let targetWord = "";
         let currentGuess = "";
         let wordleRow = 0;
         let wordleGameOver = false;
 
         function initWordle() {
-            targetWord = wordList[Math.floor(Math.random() * wordList.length)];
+            targetWord = targetWords[Math.floor(Math.random() * targetWords.length)];
             currentGuess = "";
             wordleRow = 0;
             wordleGameOver = false;
             document.getElementById('wordle-msg').textContent = "Tebak kata 5 huruf!";
 
-            // Buat Grid 6x5
             const grid = document.getElementById('wordle-grid');
             grid.innerHTML = '';
             for (let r = 0; r < 6; r++) {
@@ -730,7 +773,6 @@
                 grid.appendChild(rowDiv);
             }
 
-            // Buat Keyboard
             renderWordleKeyboard();
         }
 
@@ -758,7 +800,6 @@
             });
         }
 
-        // Listener Keyboard Fisik
         document.addEventListener('keydown', (e) => {
             const activeScreen = document.querySelector('.screen.active');
             if (activeScreen && activeScreen.id === 'wordle-screen') {
@@ -783,6 +824,11 @@
                 }
             } else if (key === 'ENTER') {
                 if (currentGuess.length === 5) {
+                    // Validasi apakah kata ada di kamus valid KBBI
+                    if (!validWords.has(currentGuess)) {
+                        document.getElementById('wordle-msg').textContent = "❌ Kata tidak ada di KBBI!";
+                        return;
+                    }
                     submitWordleGuess();
                 } else {
                     document.getElementById('wordle-msg').textContent = "Kata harus 5 huruf!";
@@ -807,15 +853,13 @@
             const guessArr = guess.split('');
             const tileColors = Array(5).fill('absent');
 
-            // Cek Hijau (Correct)
             for (let i = 0; i < 5; i++) {
                 if (guessArr[i] === targetArr[i]) {
                     tileColors[i] = 'correct';
-                    targetArr[i] = null; // Tandai sudah terpakai
+                    targetArr[i] = null;
                 }
             }
 
-            // Cek Kuning (Present)
             for (let i = 0; i < 5; i++) {
                 if (tileColors[i] !== 'correct') {
                     let idx = targetArr.indexOf(guessArr[i]);
@@ -826,13 +870,11 @@
                 }
             }
 
-            // Terapkan Warna ke Tile & Keyboard
             for (let i = 0; i < 5; i++) {
                 const tile = document.getElementById(`w-tile-${wordleRow}-${i}`);
                 const color = tileColors[i];
                 tile.classList.add(color);
 
-                // Update keyboard
                 const keyBtn = document.getElementById(`key-${guessArr[i]}`);
                 if (keyBtn) {
                     if (color === 'correct') {
